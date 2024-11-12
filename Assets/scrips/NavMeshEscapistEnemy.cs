@@ -51,31 +51,28 @@ public class SteeringEnemy : BaseEnemy
     }
 
     private void CheckPlayerDetection()
-    {
-        bool canSeePlayer = HasLineOfSight();
-        float distanceToPlayer = Vector3.Distance(transform.position, player.transform.position);
+{
+    bool canSeePlayer = HasLineOfSight(); // Línea de visión sin límites de distancia
+    float distanceToPlayer = Vector3.Distance(transform.position, player.transform.position);
 
-        if (canSeePlayer && distanceToPlayer <= detectionRadius)
-        {
-            if (distanceToPlayer > fleeDistance && !isFleeRoutineActive)
-            {
-                // En rango de visión pero fuera del rango de flee: se queda quieto y dispara como camper
-                agent.isStopped = true;
-                StartCoroutine(ShootAsCamper());
-            }
-            else if (distanceToPlayer <= fleeDistance && !isFleeRoutineActive)
-            {
-                // Si el jugador está dentro del rango de flee, inicia el flee
-                StopCoroutine(ShootAsCamper());  // Detén el comportamiento de camper
-                StartCoroutine(FleeRoutine());
-            }
-        }
-        else if (!isFleeRoutineActive && !isDead && !isTired)
-        {
-            // Si el jugador está fuera de rango, persigue
-            PursuePlayer();
-        }
+    // Camper: enemigo se queda quieto y dispara cuando puede ver al jugador y está fuera del rango de escape
+    if (canSeePlayer && distanceToPlayer > fleeDistance && !isFleeRoutineActive)
+    {
+        agent.isStopped = true; // Detener al enemigo
+        StartCoroutine(ShootAsCamper()); // Disparo como "camper"
     }
+    // Flee: enemigo huye cuando el jugador está muy cerca
+    else if (canSeePlayer && distanceToPlayer <= fleeDistance && !isFleeRoutineActive)
+    {
+        StopCoroutine(ShootAsCamper()); // Detiene el comportamiento de camper si está en marcha
+        StartCoroutine(FleeRoutine()); // Iniciar el escape
+    }
+    // Persecución: enemigo sigue al jugador cuando no lo ve y no está cansado o escapando
+    else if (!isFleeRoutineActive && !isDead && !isTired)
+    {
+        PursuePlayer(); // Perseguir al jugador
+    }
+}
 
     private void EnterActiveState()
     {
@@ -213,20 +210,22 @@ public class SteeringEnemy : BaseEnemy
     }
 
     private bool HasLineOfSight()
+{
+    if (player == null) return false;
+
+    Vector3 rayOrigin = bulletSpawnPoint.position; // Origen del rayo
+    Vector3 directionToPlayer = (player.transform.position - rayOrigin).normalized;
+    RaycastHit hit;
+
+    // Raycast sin límite de distancia
+    if (Physics.Raycast(rayOrigin, directionToPlayer, out hit))
     {
-        if (player == null) return false;
-
-        Vector3 rayOrigin = bulletSpawnPoint.position;
-        Vector3 directionToPlayer = (player.transform.position - rayOrigin).normalized;
-        RaycastHit hit;
-
-        if (Physics.Raycast(rayOrigin, directionToPlayer, out hit, detectionRadius))
-        {
-            return hit.collider.CompareTag("Player");
-        }
-
-        return false;
+        Debug.DrawRay(rayOrigin, directionToPlayer * 100, Color.green); // Rayo de depuración
+        return hit.collider.CompareTag("Player"); // Verifica si el rayo impacta al jugador
     }
+
+    return false;
+}
 
     private bool IsPlayerInRange()
     {
