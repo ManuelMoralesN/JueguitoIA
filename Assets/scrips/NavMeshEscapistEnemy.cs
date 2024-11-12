@@ -7,7 +7,7 @@ public class SteeringEnemy : BaseEnemy
     public float fleeDuration = 3.0f;
     public float restDuration = 2.0f;
     public float detectionRadius = 10.0f;
-    public float fleeDistance = 5.0f;
+    public float fleeDistance = 2.5f;  // Distancia para iniciar flee
     public float shootingInterval = 2.0f;
     public float tiredShootingInterval = 4.0f;
     public float inaccuracyAngle = 15.0f;
@@ -15,7 +15,7 @@ public class SteeringEnemy : BaseEnemy
     public GameObject fireball;
     public Transform bulletSpawnPoint;
 
-    [SerializeField] private float stoppingDistance = 2f;
+    [SerializeField] private float stoppingDistance = 4f;
     [SerializeField] private float speed = 5f;
     [SerializeField] private float acceleration = 12f;
     [SerializeField] private float angularSpeed = 360f;
@@ -53,17 +53,26 @@ public class SteeringEnemy : BaseEnemy
     private void CheckPlayerDetection()
     {
         bool canSeePlayer = HasLineOfSight();
-        bool isInRange = IsPlayerInRange();
+        float distanceToPlayer = Vector3.Distance(transform.position, player.transform.position);
 
-        if (canSeePlayer && isInRange)
+        if (canSeePlayer && distanceToPlayer <= detectionRadius)
         {
-            if (!isFleeRoutineActive && !isTired)
+            if (distanceToPlayer > fleeDistance && !isFleeRoutineActive)
             {
+                // En rango de visión pero fuera del rango de flee: se queda quieto y dispara como camper
+                agent.isStopped = true;
+                StartCoroutine(ShootAsCamper());
+            }
+            else if (distanceToPlayer <= fleeDistance && !isFleeRoutineActive)
+            {
+                // Si el jugador está dentro del rango de flee, inicia el flee
+                StopCoroutine(ShootAsCamper());  // Detén el comportamiento de camper
                 StartCoroutine(FleeRoutine());
             }
         }
         else if (!isFleeRoutineActive && !isDead && !isTired)
         {
+            // Si el jugador está fuera de rango, persigue
             PursuePlayer();
         }
     }
@@ -89,45 +98,44 @@ public class SteeringEnemy : BaseEnemy
     }
 
     private IEnumerator FleeRoutine()
-{
-    isFleeRoutineActive = true;
-    agent.isStopped = false;
-
-    float fleeTimer = 0f;
-    while (fleeTimer < fleeDuration)
     {
-        // Dirección de escape (opuesta al jugador)
-        Vector3 fleeDirection = (transform.position - player.transform.position).normalized;
-        Vector3 targetPosition = transform.position + fleeDirection * fleeDistance;
+        isFleeRoutineActive = true;
+        agent.isStopped = false;
 
-        // Gira el enemigo hacia el jugador
-        if (player != null)
+        float fleeTimer = 0f;
+        while (fleeTimer < fleeDuration)
         {
-            Vector3 lookDirection = (player.transform.position - transform.position).normalized;
-            Quaternion lookRotation = Quaternion.LookRotation(lookDirection);
-            transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * angularSpeed);
+            // Dirección de escape (opuesta al jugador)
+            Vector3 fleeDirection = (transform.position - player.transform.position).normalized;
+            Vector3 targetPosition = transform.position + fleeDirection * fleeDistance;
+
+            // Gira el enemigo hacia el jugador
+            if (player != null)
+            {
+                Vector3 lookDirection = (player.transform.position - transform.position).normalized;
+                Quaternion lookRotation = Quaternion.LookRotation(lookDirection);
+                transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * angularSpeed);
+            }
+
+            NavMeshHit hit;
+            if (NavMesh.SamplePosition(targetPosition, out hit, fleeDistance, NavMesh.AllAreas))
+            {
+                agent.SetDestination(hit.position);
+            }
+
+            // Dispara mientras huye
+            if (Time.time >= lastShootTime + shootingInterval)
+            {
+                FireAtPlayer(false);
+                lastShootTime = Time.time;
+            }
+
+            fleeTimer += Time.deltaTime;
+            yield return null;
         }
 
-        NavMeshHit hit;
-        if (NavMesh.SamplePosition(targetPosition, out hit, fleeDistance, NavMesh.AllAreas))
-        {
-            agent.SetDestination(hit.position);
-        }
-
-        // Dispara mientras huye
-        if (Time.time >= lastShootTime + shootingInterval)
-        {
-            FireAtPlayer(false);
-            lastShootTime = Time.time;
-        }
-
-        fleeTimer += Time.deltaTime;
-        yield return null;
+        EnterTiredState();
     }
-
-    EnterTiredState();
-}
-
 
     private void EnterTiredState()
     {
@@ -152,9 +160,7 @@ public class SteeringEnemy : BaseEnemy
             if (Time.time >= lastShootTime + tiredShootingInterval)
             {
                 bool canSeePlayer = HasLineOfSight();
-                bool isInRange = IsPlayerInRange();
-
-                if (canSeePlayer && isInRange)
+                if (canSeePlayer)
                 {
                     FireAtPlayer(true);
                     lastShootTime = Time.time;
@@ -167,11 +173,22 @@ public class SteeringEnemy : BaseEnemy
         EnterActiveState();
     }
 
+    private IEnumerator ShootAsCamper()
+    {
+        while (true)
+        {
+            if (Time.time >= lastShootTime + shootingInterval && HasLineOfSight())
+            {
+                FireAtPlayer(false); // Dispara sin inexactitud
+                lastShootTime = Time.time;
+            }
+            yield return new WaitForSeconds(shootingInterval);
+        }
+    }
+
     private void FireAtPlayer(bool isTired)
     {
         if (fireball == null || bulletSpawnPoint == null || player == null || isDead) return;
-
-        if (!HasLineOfSight() || !IsPlayerInRange()) return;
 
         GameObject bullet = Instantiate(fireball, bulletSpawnPoint.position, Quaternion.identity);
         Vector3 directionToPlayer = (player.transform.position - bulletSpawnPoint.position).normalized;
@@ -205,7 +222,6 @@ public class SteeringEnemy : BaseEnemy
 
         if (Physics.Raycast(rayOrigin, directionToPlayer, out hit, detectionRadius))
         {
-            Debug.DrawRay(rayOrigin, directionToPlayer * detectionRadius, Color.green);
             return hit.collider.CompareTag("Player");
         }
 
@@ -247,8 +263,7 @@ public class SteeringEnemy : BaseEnemy
         if (player != null)
         {
             bool canSee = HasLineOfSight();
-            bool inRange = IsPlayerInRange();
-            Gizmos.color = (canSee && inRange) ? Color.green : Color.red;
+            Gizmos.color = canSee ? Color.green : Color.red;
             Gizmos.DrawLine(bulletSpawnPoint.position, player.transform.position);
         }
     }
