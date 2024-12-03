@@ -2,7 +2,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
 
-public class SteeringEnemy : BaseEnemy
+public class NavMeshEscapistEnemy : BaseEnemy
 {
     public float fleeDuration = 3.0f;
     public float restDuration = 2.0f;
@@ -28,11 +28,20 @@ public class SteeringEnemy : BaseEnemy
     private Animator animator;
     private float lastShootTime;
 
+    protected UIManager uiManager;  // Asegurarse de que sea protected para heredar la referencia
+
     private void Start()
     {
         player = GameObject.FindGameObjectWithTag("Player");
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
+
+        // Obtener la referencia al UIManager
+        uiManager = FindObjectOfType<UIManager>();
+        if (uiManager == null)
+        {
+            Debug.LogError("UIManager no encontrado en la escena.");
+        }
 
         agent.stoppingDistance = stoppingDistance;
         agent.speed = speed;
@@ -51,28 +60,28 @@ public class SteeringEnemy : BaseEnemy
     }
 
     private void CheckPlayerDetection()
-{
-    bool canSeePlayer = HasLineOfSight(); // Línea de visión sin límites de distancia
-    float distanceToPlayer = Vector3.Distance(transform.position, player.transform.position);
+    {
+        bool canSeePlayer = HasLineOfSight(); // Línea de visión sin límites de distancia
+        float distanceToPlayer = Vector3.Distance(transform.position, player.transform.position);
 
-    // Camper: enemigo se queda quieto y dispara cuando puede ver al jugador y está fuera del rango de escape
-    if (canSeePlayer && distanceToPlayer > fleeDistance && !isFleeRoutineActive)
-    {
-        agent.isStopped = true; // Detener al enemigo
-        StartCoroutine(ShootAsCamper()); // Disparo como "camper"
+        // Camper: enemigo se queda quieto y dispara cuando puede ver al jugador y está fuera del rango de escape
+        if (canSeePlayer && distanceToPlayer > fleeDistance && !isFleeRoutineActive)
+        {
+            agent.isStopped = true; // Detener al enemigo
+            StartCoroutine(ShootAsCamper()); // Disparo como "camper"
+        }
+        // Flee: enemigo huye cuando el jugador está muy cerca
+        else if (canSeePlayer && distanceToPlayer <= fleeDistance && !isFleeRoutineActive)
+        {
+            StopCoroutine(ShootAsCamper()); // Detiene el comportamiento de camper si está en marcha
+            StartCoroutine(FleeRoutine()); // Iniciar el escape
+        }
+        // Persecución: enemigo sigue al jugador cuando no lo ve y no está cansado o escapando
+        else if (!isFleeRoutineActive && !isDead && !isTired)
+        {
+            PursuePlayer(); // Perseguir al jugador
+        }
     }
-    // Flee: enemigo huye cuando el jugador está muy cerca
-    else if (canSeePlayer && distanceToPlayer <= fleeDistance && !isFleeRoutineActive)
-    {
-        StopCoroutine(ShootAsCamper()); // Detiene el comportamiento de camper si está en marcha
-        StartCoroutine(FleeRoutine()); // Iniciar el escape
-    }
-    // Persecución: enemigo sigue al jugador cuando no lo ve y no está cansado o escapando
-    else if (!isFleeRoutineActive && !isDead && !isTired)
-    {
-        PursuePlayer(); // Perseguir al jugador
-    }
-}
 
     private void EnterActiveState()
     {
@@ -210,27 +219,21 @@ public class SteeringEnemy : BaseEnemy
     }
 
     private bool HasLineOfSight()
-{
-    if (player == null) return false;
-
-    Vector3 rayOrigin = bulletSpawnPoint.position; // Origen del rayo
-    Vector3 directionToPlayer = (player.transform.position - rayOrigin).normalized;
-    RaycastHit hit;
-
-    // Raycast sin límite de distancia
-    if (Physics.Raycast(rayOrigin, directionToPlayer, out hit))
-    {
-        Debug.DrawRay(rayOrigin, directionToPlayer * 100, Color.green); // Rayo de depuración
-        return hit.collider.CompareTag("Player"); // Verifica si el rayo impacta al jugador
-    }
-
-    return false;
-}
-
-    private bool IsPlayerInRange()
     {
         if (player == null) return false;
-        return Vector3.Distance(transform.position, player.transform.position) <= detectionRadius;
+
+        Vector3 rayOrigin = bulletSpawnPoint.position; // Origen del rayo
+        Vector3 directionToPlayer = (player.transform.position - rayOrigin).normalized;
+        RaycastHit hit;
+
+        // Raycast sin límite de distancia
+        if (Physics.Raycast(rayOrigin, directionToPlayer, out hit))
+        {
+            Debug.DrawRay(rayOrigin, directionToPlayer * 100, Color.green); // Rayo de depuración
+            return hit.collider.CompareTag("Player"); // Verifica si el rayo impacta al jugador
+        }
+
+        return false;
     }
 
     public override void Die()
@@ -245,12 +248,32 @@ public class SteeringEnemy : BaseEnemy
         animator.SetBool("isRunning", false);
         animator.SetBool("isResting", false);
 
-        StartCoroutine(DestroyAfterDeath());
+        Debug.Log("El enemigo ha muerto.");
+
+        // Verificar si uiManager no es null antes de llamar a ShowVictory
+        if (uiManager != null)
+        {
+            StartCoroutine(HandleVictoryAndDeath());
+        }
+        else
+        {
+            Debug.LogError("UIManager es null. No se puede mostrar la pantalla de victoria.");
+            StartCoroutine(DestroyAfterDeath());  // Continuar con la destrucción para evitar bloqueo
+        }
+    }
+    private IEnumerator HandleVictoryAndDeath()
+    {
+        uiManager.ShowVictory();  // Mostrar la pantalla de victoria
+
+        // Esperar un poco más de tiempo antes de destruir el enemigo para asegurarse de que la pantalla se muestre
+        yield return new WaitForSeconds(4f);  // Asegúrate de que sea suficiente tiempo para que la pantalla de victoria se vea
+
+        Destroy(gameObject);
     }
 
     private IEnumerator DestroyAfterDeath()
     {
-        yield return new WaitForSeconds(animator.GetCurrentAnimatorStateInfo(0).length);
+        yield return new WaitForSeconds(3f);  // Esperar 2 segundos antes de destruir el enemigo
         Destroy(gameObject);
     }
 
@@ -267,3 +290,5 @@ public class SteeringEnemy : BaseEnemy
         }
     }
 }
+
+    

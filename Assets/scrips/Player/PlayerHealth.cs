@@ -9,13 +9,12 @@ public class PlayerHealth : MonoBehaviour
     private Animator animator;
     private bool isDead = false;  // Para evitar múltiples llamadas a Die()
 
-    public GameObject gameOverUI;  // Asigna el Canvas de Game Over desde el Inspector
-    public float delayBeforeGameOver = 2f;  // Tiempo en segundos antes de mostrar el Game Over
+    private UIManager uiManager;  // Referencia al UIManager
 
     void Start()
     {
         animator = GetComponent<Animator>();  // Obtener la referencia al Animator
-        gameOverUI.SetActive(false);  // Asegurarse de que la UI esté desactivada al iniciar
+        uiManager = FindObjectOfType<UIManager>();  // Obtener la referencia al UIManager
     }
 
     // Método para recibir daño
@@ -36,7 +35,7 @@ public class PlayerHealth : MonoBehaviour
     private void Die()
     {
         if (isDead) return;  // Evitar múltiples llamadas a Die()
-        
+
         isDead = true;  // Establecer estado de muerte
 
         Debug.Log("El jugador ha muerto");
@@ -47,20 +46,7 @@ public class PlayerHealth : MonoBehaviour
         // Desactivar el movimiento
         GetComponent<PlayerMovement>().enabled = false;
 
-        // Iniciar la corutina para mostrar la pantalla de Game Over después del retraso
-        StartCoroutine(ShowGameOverUI());
-    }
-
-    // Corutina para esperar antes de mostrar el Game Over
-    IEnumerator ShowGameOverUI()
-    {
-        yield return new WaitForSeconds(delayBeforeGameOver);  // Esperar 2 segundos
-        gameOverUI.SetActive(true);  // Mostrar la pantalla de Game Over
-    }
-
-    // Método para reiniciar el nivel cuando se presiona el botón de reinicio
-    public void RestartLevel()
-    {
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);  // Reiniciar la escena actual
+        // Llamar al UIManager para mostrar la pantalla de Game Over
+        uiManager.ShowGameOver();
     }
 }
