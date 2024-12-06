@@ -273,7 +273,7 @@ public class NavMeshEscapistEnemy : BaseEnemy
 
     private IEnumerator DestroyAfterDeath()
     {
-        yield return new WaitForSeconds(3f);  // Esperar 2 segundos antes de destruir el enemigo
+        yield return new WaitForSeconds(2f);  // Esperar 2 segundos antes de destruir el enemigo
         Destroy(gameObject);
     }
 
