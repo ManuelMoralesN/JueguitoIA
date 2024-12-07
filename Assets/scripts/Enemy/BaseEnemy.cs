@@ -8,6 +8,11 @@ public class BaseEnemy : MonoBehaviour
     public LayerMask playerLayer;  // Capa asignada al jugador
     protected UIManager uiManager;  // Referencia al UIManager
 
+    public virtual void Awake()
+    {
+        // Si hay inicialización específica que deba ocurrir antes de `Start`, colócala aquí.
+    }
+
     void Start()
     {
         uiManager = FindObjectOfType<UIManager>();  // Obtener la referencia al UIManager
@@ -32,6 +37,12 @@ public class BaseEnemy : MonoBehaviour
         // Agregar un retraso antes de destruir el objeto enemigo para asegurar que la pantalla de victoria se vea
         StartCoroutine(DestroyAfterVictory());
     }
+
+    public virtual void ExecuteUltimateAttack(bool isRanged)
+    {
+        Debug.Log("Ejecutando ataque ultimate (BaseEnemy).");
+    }
+
 
     private IEnumerator DestroyAfterVictory()
     {

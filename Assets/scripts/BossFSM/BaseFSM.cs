@@ -1,0 +1,70 @@
+// BaseFSM.cs - Mejoras y protecciones
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class BaseFSM : MonoBehaviour
+{
+    // Referencia al estado actual
+    private BaseState currentState;
+
+    // Propiedad pública para acceder al estado actual
+    public BaseState CurrentState
+    {
+        get { return currentState; }
+    }
+
+    // Método Start inicializa la FSM
+    public virtual void Start()
+    {
+        // Obtener el estado inicial definido por clases derivadas
+        currentState = GetInitialState();
+
+        if (currentState == null)
+        {
+            Debug.LogWarning("FSM: El estado inicial no es válido.");
+            return;
+        }
+
+        // Llamar al método OnEnter del estado inicial
+        currentState.OnEnter();
+    }
+
+    // Método Update llama al método OnUpdate del estado actual
+    void Update()
+    {
+        if (currentState != null)
+        {
+            currentState.OnUpdate();
+        }
+    }
+
+    // Cambia al nuevo estado especificado
+    public void ChangeState(BaseState newState)
+    {
+        if (newState == null)
+        {
+            Debug.LogWarning("FSM: No se puede cambiar a un estado nulo.");
+            return;
+        }
+
+        if (currentState != null)
+        {
+            // Salir del estado actual
+            currentState.OnExit();
+        }
+
+        // Cambiar al nuevo estado
+        currentState = newState;
+
+        // Entrar al nuevo estado
+        currentState.OnEnter();
+    }
+
+    // Método virtual para definir el estado inicial (debe ser sobrescrito)
+    public virtual BaseState GetInitialState()
+    {
+        Debug.LogError("FSM: GetInitialState no ha sido sobrescrito en la clase derivada.");
+        return null;
+    }
+}
