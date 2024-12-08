@@ -1,4 +1,3 @@
-// RangeState.cs - Mejoras y optimizaci n
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;

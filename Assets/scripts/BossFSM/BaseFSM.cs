@@ -1,4 +1,3 @@
-// BaseFSM.cs - Mejoras y protecciones
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -60,9 +59,6 @@ public class BaseFSM : MonoBehaviour
         currentState.OnEnter();
     }
 
-
-
-    // M todo virtual para definir el estado inicial (debe ser sobrescrito)
     public virtual BaseState GetInitialState()
     {
         Debug.LogError("FSM: GetInitialState no ha sido sobrescrito en la clase derivada.");
