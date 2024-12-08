@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class BaseState : MonoBehaviour
 {
-    // Nombre del estado para identificación
+    // Nombre del estado para identificaci n
     public string Name { get; protected set; } = "BaseState";
 
     // Referencia a la FSM que contiene este estado
@@ -14,14 +14,14 @@ public class BaseState : MonoBehaviour
     // Constructor por defecto
     public BaseState() { }
 
-    // Constructor con parámetros
+    // Constructor con par metros
     public BaseState(string name, BaseFSM fsmRef)
     {
         Name = name;
         FSMRef = fsmRef;
     }
 
-    // Método para inicializar el estado
+    // M todo para inicializar el estado
     public virtual void InitializeState(BaseFSM fsmRef)
     {
         FSMRef = fsmRef;
@@ -33,7 +33,7 @@ public class BaseState : MonoBehaviour
         Debug.Log($"[BaseState] Entrando al estado: {Name}");
     }
 
-    // Llamado en cada frame mientras el estado está activo
+    // Llamado en cada frame mientras el estado est  activo
     public virtual void OnUpdate()
     {
         Debug.Log($"[BaseState] Actualizando estado: {Name}");

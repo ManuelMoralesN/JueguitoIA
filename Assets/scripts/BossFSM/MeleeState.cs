@@ -1,4 +1,4 @@
-// MeleeState.cs - Mejoras y optimizaci�n
+// MeleeState.cs - Mejoras y optimizaci n
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -20,6 +20,8 @@ public class MeleeState : BaseState
     private EnemyFSM _enemyFSMRef;
     private BossEnemy _owner;
     private bool _substateEntered = false;
+    private NavMeshAgent agent;
+    private AudioSource audioSource; // Referencia al AudioSource del enemigo
 
     public MeleeState()
     {
@@ -28,8 +30,20 @@ public class MeleeState : BaseState
 
     public override void OnEnter()
     {
+    InitializeReferences();
+
+    // Reproducir sonido al entrar en Melee
+    if (_owner != null)
+    {
+        _owner.PlayMeleeSound();
+    }
+    else
+    {
+        Debug.LogError("MeleeState: _owner no está inicializado.");
+    }
         base.OnEnter();
         InitializeReferences();
+        agent = _owner.GetComponent<NavMeshAgent>();
         Debug.Log("Entrando al estado MeleeState.");
     }
 
@@ -42,22 +56,50 @@ public class MeleeState : BaseState
             _owner = (BossEnemy)_enemyFSMRef.Owner;
 
         Debug.Log("MeleeState: Referencias inicializadas.");
+        
+        if (_owner == null || _owner.Animator == null)
+        Debug.LogError("MeleeState: _owner o su Animator no están asignados correctamente.");
+
+        if (_owner == null)
+    {
+        Debug.LogError("MeleeState: _owner no está inicializado.");
+    }
+    else
+    {
+        Debug.Log("MeleeState: _owner inicializado correctamente.");
+    }
     }
 
     public override void OnUpdate()
     {
         base.OnUpdate();
 
-        // Verificar si el jugador est� fuera del rango melee
+        // Verificar si el jugador est  fuera del rango melee
         if (!_owner.IsPlayerInMeleeRange())
         {
             Debug.Log("Jugador fuera de rango melee. Cambiando a estado Ranged.");
+            agent.isStopped = true;
             _enemyFSMRef.ChangeState(_enemyFSMRef.RangeState);
             return;
         }
 
+        agent.isStopped = false;
+        agent.SetDestination(_owner.Player.position);
         HandleSubstateLogic();
     }
+
+    public override void OnExit()
+    {
+        // Detener la música si el AudioSource está disponible
+    if (audioSource != null && audioSource.isPlaying)
+    {
+        audioSource.Stop();
+        Debug.Log("Deteniendo sonido al salir del estado Melee.");
+    }
+        base.OnExit();
+        agent.isStopped = true; // Detener movimiento al salir del estado
+        Debug.Log("Saliendo del estado MeleeState.");
+    }   
 
     private void HandleSubstateLogic()
     {
@@ -104,30 +146,146 @@ public class MeleeState : BaseState
 
     private IEnumerator BasicAttack()
     {
-        Debug.Log("Ejecutando ataque b�sico.");
-        _owner.ExecuteBasicAttack();
-        yield break;
+        Debug.Log("Ejecutando ataque básico en estado Melee.");
+
+    // Activar la animación del ataque básico
+    _owner.Animator.SetTrigger("BasicAttackTrigger");
+
+    // Sincronizar la aplicación de daño con la animación
+    yield return new WaitForSeconds(0.19f); // Ajusta este valor al tiempo del impacto en la animación
+
+    // Detectar jugadores en el rango del ataque
+    Collider[] hitPlayers = Physics.OverlapSphere(_owner.transform.position, _owner.meleeRange, _owner.playerLayer);
+
+    foreach (Collider playerCollider in hitPlayers)
+    {
+        PlayerHealth playerHealth = playerCollider.GetComponent<PlayerHealth>();
+        if (playerHealth != null)
+        {
+            Debug.Log($"Jugador impactado por ataque básico. Daño: {_owner.basicAttackDamage}");
+            playerHealth.TakeDamage((int)_owner.basicAttackDamage); // Llama al método TakeDamage
+        }
+        else
+        {
+            Debug.LogWarning("El Collider detectado no tiene el componente PlayerHealth.");
+        }
+    }
+
+    // Cooldown del ataque
+    yield return new WaitForSeconds(_owner.basicAttackCooldown);
+    TransitionToSelectionState(); // Volver al subestado de selección
     }
 
     private IEnumerator AreaAttack()
     {
-        Debug.Log("Ejecutando ataque de �rea.");
-        _owner.ExecuteAreaAttack();
-        yield break;
+    Debug.Log("MeleeState: Ejecutando ataque de área.");
+
+    // Activar la animación del ataque de área
+    _owner.Animator.SetTrigger("AreaAttackTrigger");
+
+    // Sincronizar el daño con la animación
+    yield return new WaitForSeconds(1.27f); // Ajusta este valor al momento del impacto en la animación
+
+    // Detectar jugadores en el rango del ataque
+    Collider[] hitPlayers = Physics.OverlapSphere(_owner.transform.position, _owner.areaAttackRange, _owner.playerLayer);
+
+    foreach (Collider playerCollider in hitPlayers)
+    {
+        PlayerHealth playerHealth = playerCollider.GetComponent<PlayerHealth>();
+        if (playerHealth != null)
+        {
+            Debug.Log($"Jugador impactado por ataque de área. Daño: {_owner.areaAttackDamage}");
+            playerHealth.TakeDamage((int)_owner.areaAttackDamage); // Llama al método TakeDamage
+        }
+        else
+        {
+            Debug.LogWarning("El Collider detectado no tiene el componente PlayerHealth.");
+        }
+    }
+
+    // Cooldown antes de permitir otro ataque
+    yield return new WaitForSeconds(_owner.areaAttackCooldown);
+    TransitionToSelectionState(); // Cambiar al subestado de selección
+
     }
 
     private IEnumerator DashAttack()
     {
-        Debug.Log("Ejecutando ataque de dash.");
-        _owner.ExecuteDashAttack();
-        yield break;
+        Debug.Log("MeleeState: Ejecutando ataque de dash.");
+
+    // Activar la animación del ataque de dash
+    _owner.Animator.SetTrigger("DashAttackTrigger");
+
+    // Sincronizar con la animación (puedes ajustar este valor)
+    yield return new WaitForSeconds(0.16f);
+
+    // Realizar el movimiento rápido hacia el jugador
+    Vector3 dashDirection = (_owner.Player.position - _owner.transform.position).normalized;
+    float dashDistance = 5f; // Distancia que recorrerá el dash
+    float dashSpeed = 10f;   // Velocidad del movimiento
+
+    float traveledDistance = 0f;
+    while (traveledDistance < dashDistance)
+    {
+        Vector3 dashStep = dashDirection * dashSpeed * Time.deltaTime;
+        _owner.transform.position += dashStep;
+        traveledDistance += dashStep.magnitude;
+
+        yield return null; // Esperar al siguiente frame
+    }
+
+    // Aplicar daño al jugador si está en rango
+    Collider[] hitPlayers = Physics.OverlapSphere(_owner.transform.position, _owner.meleeRange, _owner.playerLayer);
+
+    foreach (Collider playerCollider in hitPlayers)
+    {
+        PlayerHealth playerHealth = playerCollider.GetComponent<PlayerHealth>();
+        if (playerHealth != null)
+        {
+            Debug.Log($"Jugador impactado por ataque de dash. Daño: {_owner.dashAttackDamage}");
+            playerHealth.TakeDamage((int)_owner.dashAttackDamage);
+        }
+    }
+
+    // Cooldown antes de permitir otro ataque
+    yield return new WaitForSeconds(_owner.dashAttackCooldown);
+    TransitionToSelectionState(); // Cambiar al subestado de selección
     }
 
     private IEnumerator UltimateAttack()
     {
-        Debug.Log("Ejecutando ataque ultimate melee.");
-        _owner.ExecuteUltimateAttack(false);
-        yield break;
+        Debug.Log("Ejecutando ataque ultimate.");
+
+    // Activar la animación del Ultimate Attack
+    _owner.Animator.SetTrigger("UltimateAttackTrigger");
+
+    // Esperar hasta que la animación alcance el impacto visual
+    while (true)
+    {
+        AnimatorStateInfo stateInfo = _owner.Animator.GetCurrentAnimatorStateInfo(0);
+
+        if (stateInfo.IsName("UltimateAttack") && stateInfo.normalizedTime >= 3.0f) // Ajusta el tiempo
+        {
+            // Aplicar daño
+            Collider[] hitPlayers = Physics.OverlapSphere(_owner.transform.position, _owner.ultimateRange, _owner.playerLayer);
+
+            foreach (Collider playerCollider in hitPlayers)
+            {
+                PlayerHealth playerHealth = playerCollider.GetComponent<PlayerHealth>();
+                if (playerHealth != null)
+                {
+                    Debug.Log($"Jugador impactado por Ultimate Attack. Daño: {_owner.ultimateAttackDamage}");
+                    playerHealth.TakeDamage((int)_owner.ultimateAttackDamage);
+                }
+            }
+            break;
+        }
+        yield return null; // Esperar al siguiente frame
+    }
+
+    // Cooldown del Ultimate Attack
+    yield return new WaitForSeconds(_owner.ultimateAttackCooldown);
+    TransitionToSelectionState(); // Cambiar al subestado de selección
     }
 
     private IEnumerator Cooldown(float cooldownTime)
@@ -139,7 +297,7 @@ public class MeleeState : BaseState
 
     private void TransitionToSelectionState()
     {
-        Debug.Log("Transici�n al subestado de selecci�n.");
+        Debug.Log("Transici n al subestado de selecci n.");
         _substateHistory.Add(_currentSubstate);
         _substateEntered = false;
         _currentSubstate = MeleeSubstate.SubstateSelection;

@@ -8,6 +8,16 @@ public class BaseEnemy : MonoBehaviour
     public LayerMask playerLayer;  // Capa asignada al jugador
     protected UIManager uiManager;  // Referencia al UIManager
 
+    [Header("Parpadeo al recibir daño")]
+    public Renderer enemyRenderer;          // Renderer del enemigo
+    public Color damageColor = Color.red;   // Color de parpadeo al recibir daño
+    public float flashDuration = 0.1f;      // Duración del parpadeo en segundos
+    [Header("Audio Settings")]
+    public AudioSource audioSource;       // Referencia al AudioSource
+    public AudioClip meleeSoundClip;      // Sonido al entrar en Melee
+
+    private Color originalColor;            // Color original del material
+
     public virtual void Awake()
     {
         // Si hay inicialización específica que deba ocurrir antes de `Start`, colócala aquí.
@@ -15,7 +25,28 @@ public class BaseEnemy : MonoBehaviour
 
     void Start()
     {
+        // Asignar automáticamente el AudioSource si no está configurado
+        if (audioSource == null)
+        {
+            audioSource = GetComponent<AudioSource>();
+        }
+
+        // Verificar si el AudioSource está configurado correctamente
+        if (audioSource == null)
+        {
+            Debug.LogError("BaseEnemy: No se encontró un AudioSource en el enemigo.");
+        }
         uiManager = FindObjectOfType<UIManager>();  // Obtener la referencia al UIManager
+
+        // Guardar el color original del material
+        if (enemyRenderer != null)
+        {
+            originalColor = enemyRenderer.material.color;
+        }
+        else
+        {
+            Debug.LogError("BaseEnemy: El Renderer del enemigo no está asignado.");
+        }
     }
 
     // Método para recibir daño
@@ -28,7 +59,28 @@ public class BaseEnemy : MonoBehaviour
         {
             Die();  // Llamar al método de muerte solo si la vida llega a 0
         }
+        else
+        {
+            StartCoroutine(FlashRed()); // Iniciar parpadeo rojo
+        }
     }
+
+    // Método para manejar el parpadeo en rojo
+    private IEnumerator FlashRed()
+    {
+        if (enemyRenderer != null)
+        {
+            // Cambiar al color de daño
+            enemyRenderer.material.color = damageColor;
+
+            // Esperar la duración del parpadeo
+            yield return new WaitForSeconds(flashDuration);
+
+            // Restaurar el color original
+            enemyRenderer.material.color = originalColor;
+        }
+    }
+
     public virtual void Die()
     {
         Debug.Log("El enemigo ha muerto.");
@@ -43,11 +95,22 @@ public class BaseEnemy : MonoBehaviour
         Debug.Log("Ejecutando ataque ultimate (BaseEnemy).");
     }
 
-
     private IEnumerator DestroyAfterVictory()
     {
         yield return new WaitForSeconds(uiManager.delayBeforeVictory + 1.5f);  // Esperar el tiempo de la pantalla de victoria + un segundo y medio extra
         Destroy(gameObject);
     }
-
+     public void PlayMeleeSound()
+    {
+        if (audioSource != null && meleeSoundClip != null)
+        {
+            audioSource.clip = meleeSoundClip;
+            audioSource.Play();
+            Debug.Log("Sonido de Melee reproducido.");
+        }
+        else
+        {
+            Debug.LogError("BaseEnemy: El AudioSource o el AudioClip no están configurados.");
+        }
+    }
 }

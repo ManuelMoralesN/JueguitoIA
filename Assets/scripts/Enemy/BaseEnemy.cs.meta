@@ -3,7 +3,10 @@ guid: 3b7f3fd3e8da8ae42819a6b651e2ffb0
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - enemyRenderer: {instanceID: 0}
+  - audioSource: {instanceID: 0}
+  - meleeSoundClip: {fileID: 8300000, guid: c2f20066e7008e849a6468d5188814de, type: 3}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

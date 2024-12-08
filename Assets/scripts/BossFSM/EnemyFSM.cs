@@ -1,4 +1,4 @@
-// EnemyFSM.cs - Mejoras y optimización
+// EnemyFSM.cs - Mejoras y optimizaci n
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -14,7 +14,7 @@ public class EnemyFSM : BaseFSM
     [Header("Contexto del Enemigo")]
     public BossEnemy Owner;
 
-    // Inicialización de la FSM
+    // Inicializaci n de la FSM
     public override void Start()
     {
         // Crear y asignar estados

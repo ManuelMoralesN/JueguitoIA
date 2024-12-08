@@ -8,13 +8,13 @@ public class BaseFSM : MonoBehaviour
     // Referencia al estado actual
     private BaseState currentState;
 
-    // Propiedad pública para acceder al estado actual
+    // Propiedad p blica para acceder al estado actual
     public BaseState CurrentState
     {
         get { return currentState; }
     }
 
-    // Método Start inicializa la FSM
+    // M todo Start inicializa la FSM
     public virtual void Start()
     {
         // Obtener el estado inicial definido por clases derivadas
@@ -22,15 +22,15 @@ public class BaseFSM : MonoBehaviour
 
         if (currentState == null)
         {
-            Debug.LogWarning("FSM: El estado inicial no es válido.");
+            Debug.LogWarning("FSM: El estado inicial no es v lido.");
             return;
         }
 
-        // Llamar al método OnEnter del estado inicial
+        // Llamar al m todo OnEnter del estado inicial
         currentState.OnEnter();
     }
 
-    // Método Update llama al método OnUpdate del estado actual
+    // M todo Update llama al m todo OnUpdate del estado actual
     void Update()
     {
         if (currentState != null)
@@ -61,7 +61,7 @@ public class BaseFSM : MonoBehaviour
         currentState.OnEnter();
     }
 
-    // Método virtual para definir el estado inicial (debe ser sobrescrito)
+    // M todo virtual para definir el estado inicial (debe ser sobrescrito)
     public virtual BaseState GetInitialState()
     {
         Debug.LogError("FSM: GetInitialState no ha sido sobrescrito en la clase derivada.");

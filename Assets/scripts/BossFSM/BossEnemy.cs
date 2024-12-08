@@ -1,4 +1,4 @@
-// BossEnemy.cs - Mejoras y optimizaci�n
+// BossEnemy.cs - Mejoras y optimizaci n
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -15,6 +15,44 @@ public class BossEnemy : BaseEnemy
     public float dashAttackCooldown = 2f;
     public float ultimateAttackCooldown = 10f;
 
+    [Header("NavMesh Settings")]
+    private UnityEngine.AI.NavMeshAgent agent; // Agente de movimiento
+
+    [Header("Movimiento")]
+    public float movementSpeed = 3.5f;
+    public float stoppingDistance = 2f; // Distancia a la cual se detiene cerca del jugador
+
+    [Header("Daño del Ataque Básico")]
+    public float basicAttackDamage = 10f; // Cantidad de daño infligido por el ataque básico
+    
+    [Header("Ataque de Área")]
+    public float areaAttackDamage = 20f;      // Daño del ataque de área
+    public float areaAttackRange = 5f;        // Rango del ataque de área
+    
+    [Header("Ataque de Dash")]
+    public float dashAttackDamage = 15f;  // Daño infligido por el dash
+
+    [Header("Ultimate Attack")]
+    public float ultimateAttackDamage = 50f;   // Daño infligido por el ultimate
+    public float ultimateRange = 10f;
+
+    [Header("Ataque a Distancia")]
+    public GameObject projectilePrefab;   // Prefab del proyectil
+    public Transform projectileSpawnPoint; // Punto de origen para los proyectiles
+
+    [Header("Ataque de Área Aéreo")]
+    public GameObject projectilePrefab1;         // Prefab del proyectil
+    public Transform[] projectileFirePoints;      // Punto de origen de los proyectiles
+
+    [Header("Ataque Combinado: Dash + Ráfaga")]
+    public GameObject projectilePrefab2;          // Prefab del proyectil
+    public Transform projectileSpawnPoint2;       // Punto de disparo de los proyectiles
+    public float timeBetweenProjectiles = 0.2f;  // Tiempo entre cada proyectil en la ráfaga
+
+    [Header("Ataque Ultimate Aereo")]
+    public GameObject projectilePrefab3;          // Prefab del proyectil
+    public Transform projectileSpawnPoint3;       // Punto de disparo
+
     private float nextAttackTime;
     private List<string> recentSpecialAttacks = new List<string>();
 
@@ -22,9 +60,27 @@ public class BossEnemy : BaseEnemy
     private Transform player;
     private bool isGameStarted = false;
     private bool ultimateUsed = false;
+    public Transform Player => player;
+    private UnityEngine.AI.NavMeshAgent navMeshAgent; // Referencia al NavMeshAgent
+    private Animator animator;
+    public Animator Animator => animator; // Propiedad para acceder al Animator
+    public UnityEngine.AI.NavMeshAgent NavMeshAgent => navMeshAgent; // Propiedad para acceso desde estados
 
     public override void Awake()
     {
+        agent = GetComponent<UnityEngine.AI.NavMeshAgent>(); // Obtener NavMeshAgent
+        animator = GetComponent<Animator>();
+        if (agent == null)
+        {
+            Debug.LogError("BossEnemy requiere un NavMeshAgent.");
+        }
+        animator = GetComponent<Animator>();
+        if (animator == null)
+        Debug.LogError("BossEnemy: No se encontró Animator.");
+
+        agent.speed = movementSpeed;
+        agent.stoppingDistance = stoppingDistance;
+
         base.Awake();
         fsm = GetComponent<EnemyFSM>();
         player = GameObject.FindGameObjectWithTag("Player")?.transform;
@@ -42,7 +98,33 @@ public class BossEnemy : BaseEnemy
         if (!isGameStarted || player == null) return;
 
         HandleStateTransitions();
+        FollowPlayer();
+        UpdateAnimator();
     }
+
+    private void UpdateAnimator()
+    {
+        // Determina si el enemigo está en movimiento
+        bool isRunning = agent.velocity.sqrMagnitude > 0.1f;
+        animator.SetBool("IsRunning", isRunning);
+    }
+
+    private void FollowPlayer()
+    {
+        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+
+        // Mover hacia el jugador si está fuera del rango de parada
+        if (distanceToPlayer > stoppingDistance)
+        {
+            agent.isStopped = false;
+            agent.SetDestination(player.position);
+        }
+        else
+        {
+            agent.isStopped = true;
+        }
+    }
+
 
     private void HandleStateTransitions()
     {
@@ -109,7 +191,7 @@ public class BossEnemy : BaseEnemy
 
     public IEnumerator ExecuteBasicAttack()
     {
-        Debug.Log("Ejecutando ataque b�sico.");
+        Debug.Log("Ejecutando ataque b sico.");
         yield return new WaitForSeconds(basicAttackCooldown);
         nextAttackTime = Time.time + basicAttackCooldown;
     }
@@ -117,7 +199,7 @@ public class BossEnemy : BaseEnemy
 
     public IEnumerator ExecuteAreaAttack()
     {
-        Debug.Log("Ejecutando ataque de �rea.");
+        Debug.Log("Ejecutando ataque de  rea.");
         yield return new WaitForSeconds(areaAttackCooldown);
         recentSpecialAttacks.Add("Area");
         nextAttackTime = Time.time + areaAttackCooldown;
@@ -174,5 +256,9 @@ public class BossEnemy : BaseEnemy
 
         Gizmos.color = Color.blue;
         Gizmos.DrawWireSphere(transform.position, rangedRange);
+
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(transform.position, stoppingDistance);
     }
+    
 }

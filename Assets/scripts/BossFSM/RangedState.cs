@@ -1,4 +1,4 @@
-// RangeState.cs - Mejoras y optimizaci髇
+// RangeState.cs - Mejoras y optimizaci n
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -19,6 +19,8 @@ public class RangeState : BaseState
     private EnemyFSM _enemyFSMRef;
     private BossEnemy _owner;
     private bool _substateEntered = false;
+    private UnityEngine.AI.NavMeshAgent agent;
+    
 
     public RangeState()
     {
@@ -29,6 +31,8 @@ public class RangeState : BaseState
     {
         base.OnEnter();
         InitializeReferences();
+        agent = _owner.GetComponent<UnityEngine.AI.NavMeshAgent>();
+        Debug.Log("Entrando al estado RangeState.");
     }
 
     private void InitializeReferences()
@@ -45,9 +49,35 @@ public class RangeState : BaseState
 
     public override void OnUpdate()
     {
-        base.OnUpdate();
+         base.OnUpdate();
 
-        HandleSubstateLogic();
+    if (_owner.IsPlayerInMeleeRange())
+    {
+        Debug.Log("Jugador dentro de rango melee. Cambiando a estado Melee.");
+        agent.isStopped = true;
+        _enemyFSMRef.ChangeState(_enemyFSMRef.MeleeState);
+        return;
+    }
+
+    // Mantener distancia del jugador
+    if (Vector3.Distance(_owner.transform.position, _owner.Player.position) > _owner.rangedRange)
+    {
+        agent.isStopped = false;
+        agent.SetDestination(_owner.Player.position);
+    }
+    else
+    {
+        agent.isStopped = true;
+    }
+
+    HandleSubstateLogic();
+    }
+
+    public override void OnExit()
+    {
+        base.OnExit();
+        agent.isStopped = true;
+        Debug.Log("Saliendo del estado RangeState.");
     }
 
     private void HandleSubstateLogic()
@@ -95,28 +125,205 @@ public class RangeState : BaseState
 
     private IEnumerator BasicAttack()
     {
-        Debug.Log("Ejecutando ataque b醩ico a distancia.");
+            Debug.Log("RangedState: Ejecutando ataque b谩sico a茅reo.");
+
+    // Activar la animaci贸n del ataque
+    _owner.Animator.SetTrigger("RangedAttackTrigger");
+
+    // Sincronizar con la animaci贸n (ajusta el tiempo al momento del disparo)
+    yield return new WaitForSeconds(0.5f);
+
+    // Calcular la direcci贸n hacia el jugador
+    Vector3 directionToPlayer = (_owner.Player.position - _owner.projectileSpawnPoint.position).normalized;
+
+    // Generar el proyectil
+    GameObject projectile = GameObject.Instantiate(
+        _owner.projectilePrefab,
+        _owner.projectileSpawnPoint.position,  // Posici贸n del origen del proyectil
+        Quaternion.identity  // Rotaci贸n inicial
+    );
+
+    // Configurar el proyectil
+    EnemyProjectile projScript = projectile.GetComponent<EnemyProjectile>();
+    if (projScript != null)
+    {
+        projScript.Initialize(directionToPlayer); // Pasar direcci贸n al proyectil
+        projScript.playerLayer = LayerMask.GetMask("Player"); // Asignar capa del jugador
+    }
+    else
+    {
+        Debug.LogError("El prefab del proyectil no tiene el componente EnemyProjectile.");
+    }
+
+
         _owner.ExecuteBasicAttack();
         yield break;
     }
 
     private IEnumerator AreaAttack()
     {
-        Debug.Log("Ejecutando ataque de 醨ea a distancia.");
+         Debug.Log("RangedState: Ejecutando ataque a茅reo de 谩rea con m煤ltiples puntos de disparo.");
+
+    // Activar la animaci贸n del ataque
+    _owner.Animator.SetTrigger("AreaAttackTriggerA");
+
+    // Sincronizar con la animaci贸n
+    yield return new WaitForSeconds(1.0f);
+
+    // Lista de puntos de disparo
+    Transform[] firePoints = _owner.projectileFirePoints; // Array de puntos de disparo en el BossEnemy
+
+    // Generar un proyectil por cada punto de disparo
+    foreach (Transform firePoint in firePoints)
+    {
+        // Instanciar el proyectil
+        GameObject projectile = GameObject.Instantiate(
+            _owner.projectilePrefab,
+            firePoint.position,      // Posici贸n del punto de disparo
+            firePoint.rotation       // Rotaci贸n del punto de disparo
+        );
+
+        // Configurar el proyectil
+        EnemyProjectile projScript = projectile.GetComponent<EnemyProjectile>();
+        if (projScript != null)
+        {
+            projScript.Initialize(firePoint.forward); // Usar la direcci贸n del punto de disparo
+            projScript.playerLayer = LayerMask.GetMask("Player"); // Asignar capa del jugador
+        }
+        else
+        {
+            Debug.LogError("El prefab del proyectil no tiene el componente EnemyProjectile.");
+        }
+    }
+
         _owner.ExecuteAreaAttack();
         yield break;
     }
 
     private IEnumerator DashAttack()
     {
-        Debug.Log("Ejecutando ataque de dash a distancia.");
+        Debug.Log("Ejecutando ataque combinado: Dash + R谩faga de proyectiles con una animaci贸n.");
+
+    // Activar la animaci贸n del ataque
+    _owner.Animator.SetTrigger("DashProjectileTrigger");
+
+    // Direcci贸n del dash
+    Vector3 directionToPlayer = (_owner.Player.position - _owner.transform.position).normalized;
+
+    // Distancia y velocidad del dash
+    float dashDistance = 10f;
+    float dashSpeed = 20f;
+
+    // Punto final del dash
+    Vector3 dashTarget = _owner.transform.position + directionToPlayer * dashDistance;
+
+    // Evitar atravesar obst谩culos
+    if (Physics.Raycast(_owner.transform.position, directionToPlayer, out RaycastHit hit, dashDistance))
+    {
+        dashTarget = hit.point;
+    }
+
+    // Movimiento del dash
+    float elapsedTime = 0f;
+    float dashDuration = dashDistance / dashSpeed;
+    Vector3 startPosition = _owner.transform.position;
+
+    while (elapsedTime < dashDuration)
+    {
+        elapsedTime += Time.deltaTime;
+        _owner.transform.position = Vector3.Lerp(startPosition, dashTarget, elapsedTime / dashDuration);
+
+        yield return null;
+    }
+
+    // Pausa breve despu茅s del Dash para sincronizar con los disparos
+    yield return new WaitForSeconds(0.20f);
+
+    // Disparar la r谩faga de proyectiles
+    int projectilesToShoot = 3;
+    float timeBetweenShots = 0.2f;
+
+    for (int i = 0; i < projectilesToShoot; i++)
+    {
+        // Calcular direcci贸n hacia el jugador
+        Vector3 directionToFire = (_owner.Player.position - _owner.projectileSpawnPoint.position).normalized;
+
+        // Instanciar el proyectil
+        GameObject projectile = GameObject.Instantiate(
+            _owner.projectilePrefab,
+            _owner.projectileSpawnPoint.position,
+            Quaternion.identity
+        );
+
+        // Configurar el proyectil
+        EnemyProjectile projScript = projectile.GetComponent<EnemyProjectile>();
+        if (projScript != null)
+        {
+            projScript.Initialize(directionToFire); // Configurar direcci贸n del proyectil
+            projScript.playerLayer = LayerMask.GetMask("Player"); // Asignar capa del jugador
+        }
+        else
+        {
+            Debug.LogError("El prefab del proyectil no tiene el componente EnemyProjectile.");
+        }
+
+        // Esperar antes de disparar el siguiente proyectil
+        yield return new WaitForSeconds(timeBetweenShots);
+    }
+
+
         _owner.ExecuteDashAttack();
         yield break;
     }
 
     private IEnumerator UltimateAttack()
     {
-        Debug.Log("Ejecutando ataque ultimate a distancia.");
+        Debug.Log("RangedState: Ejecutando ataque ultimate de bolas de fuego.");
+
+    // Activar la animaci贸n del ataque ultimate
+    _owner.Animator.SetTrigger("UltimateAttackTrigger");
+
+    // Tiempo total del ataque
+    float attackDuration = 1f;
+    float timeBetweenProjectiles = 0.1f; // Intervalo entre cada proyectil
+    float elapsedTime = 0f;
+
+    // N煤mero de direcciones (mayor n煤mero = m谩s densidad de proyectiles)
+    int numDirections = 12; // Cambia seg煤n la cantidad de proyectiles deseada por ciclo
+
+    while (elapsedTime < attackDuration)
+    {
+        elapsedTime += timeBetweenProjectiles;
+
+        // Generar proyectiles en todas las direcciones
+        for (int i = 0; i < numDirections; i++)
+        {
+            float angle = (360f / numDirections) * i; // 脕ngulo entre cada proyectil
+            Vector3 direction = Quaternion.Euler(0, angle, 0) * Vector3.forward;
+
+            // Instanciar el proyectil
+            GameObject projectile = GameObject.Instantiate(
+                _owner.projectilePrefab,
+                _owner.projectileSpawnPoint.position,
+                Quaternion.identity
+            );
+
+            // Configurar el proyectil
+            EnemyProjectile projScript = projectile.GetComponent<EnemyProjectile>();
+            if (projScript != null)
+            {
+                projScript.Initialize(direction); // Configurar direcci贸n del proyectil
+                projScript.playerLayer = LayerMask.GetMask("Player"); // Asignar capa del jugador
+            }
+            else
+            {
+                Debug.LogError("El prefab del proyectil no tiene el componente EnemyProjectile.");
+            }
+        }
+
+        // Esperar antes de lanzar la siguiente r谩faga
+        yield return new WaitForSeconds(timeBetweenProjectiles);
+    }
         _owner.ExecuteUltimateAttack(true);
         yield break;
     }
@@ -130,7 +337,7 @@ public class RangeState : BaseState
 
     private void TransitionToSelectionState()
     {
-        Debug.Log($"RangeState: Transici髇 al subestado {RangeSubstate.SubstateSelection}");
+        Debug.Log($"RangeState: Transici n al subestado {RangeSubstate.SubstateSelection}");
         _substateHistory.Add(_currentSubstate);
         _substateEntered = false;
         _currentSubstate = RangeSubstate.SubstateSelection;
@@ -139,7 +346,7 @@ public class RangeState : BaseState
 
     private void SelectNextSubstate()
     {
-        Debug.Log("RangeState: Selecci髇 de siguiente subestado.");
+        Debug.Log("RangeState: Selecci n de siguiente subestado.");
 
         if (_owner.CanExecuteUltimateRangedAttack())
         {
