@@ -1,4 +1,3 @@
-// BossEnemy.cs - Mejoras y optimizaci n
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -15,6 +14,12 @@ public class BossEnemy : BaseEnemy
     public float dashAttackCooldown = 2f;
     public float ultimateAttackCooldown = 10f;
 
+    [Header("Sonidos del Jefe")]
+    public AudioClip basicAttackSound; // Sonido del ataque básico
+    public AudioClip areaAttackSound; // Sonido del ataque de área
+    public AudioClip dashAttackSound; // Sonido del ataque de dash
+    public AudioClip ultimateAttackSound; // Sonido del ataque ultimate
+
     [Header("NavMesh Settings")]
     private UnityEngine.AI.NavMeshAgent agent; // Agente de movimiento
 
@@ -24,11 +29,11 @@ public class BossEnemy : BaseEnemy
 
     [Header("Daño del Ataque Básico")]
     public float basicAttackDamage = 10f; // Cantidad de daño infligido por el ataque básico
-    
+
     [Header("Ataque de Área")]
     public float areaAttackDamage = 20f;      // Daño del ataque de área
     public float areaAttackRange = 5f;        // Rango del ataque de área
-    
+
     [Header("Ataque de Dash")]
     public float dashAttackDamage = 15f;  // Daño infligido por el dash
 
@@ -70,13 +75,15 @@ public class BossEnemy : BaseEnemy
     {
         agent = GetComponent<UnityEngine.AI.NavMeshAgent>(); // Obtener NavMeshAgent
         animator = GetComponent<Animator>();
+        audioSource = GetComponent<AudioSource>();
+
         if (agent == null)
         {
             Debug.LogError("BossEnemy requiere un NavMeshAgent.");
         }
         animator = GetComponent<Animator>();
         if (animator == null)
-        Debug.LogError("BossEnemy: No se encontró Animator.");
+            Debug.LogError("BossEnemy: No se encontró Animator.");
 
         agent.speed = movementSpeed;
         agent.stoppingDistance = stoppingDistance;
@@ -109,9 +116,20 @@ public class BossEnemy : BaseEnemy
         animator.SetBool("IsRunning", isRunning);
     }
 
+
     private void FollowPlayer()
     {
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+
+        // Girar hacia el jugador
+        Vector3 directionToPlayer = (player.position - transform.position).normalized;
+        directionToPlayer.y = 0; // Evitar inclinación
+
+        if (directionToPlayer != Vector3.zero)
+        {
+            Quaternion targetRotation = Quaternion.LookRotation(directionToPlayer);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 5f); // Suavizar el giro
+        }
 
         // Mover hacia el jugador si está fuera del rango de parada
         if (distanceToPlayer > stoppingDistance)
@@ -125,7 +143,6 @@ public class BossEnemy : BaseEnemy
         }
     }
 
-
     private void HandleStateTransitions()
     {
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
@@ -136,6 +153,7 @@ public class BossEnemy : BaseEnemy
         {
             fsm.ChangeState(fsm.MeleeState);
         }
+
         else if (isInRangedRange && !(fsm.CurrentState is RangeState))
         {
             fsm.ChangeState(fsm.RangeState);
@@ -191,15 +209,16 @@ public class BossEnemy : BaseEnemy
 
     public IEnumerator ExecuteBasicAttack()
     {
-        Debug.Log("Ejecutando ataque b sico.");
+        Debug.Log("Ejecutando ataque básico.");
+        PlaySound(basicAttackSound); // Reproducir sonido de ataque básico
         yield return new WaitForSeconds(basicAttackCooldown);
         nextAttackTime = Time.time + basicAttackCooldown;
     }
 
-
     public IEnumerator ExecuteAreaAttack()
     {
-        Debug.Log("Ejecutando ataque de  rea.");
+        Debug.Log("Ejecutando ataque de área.");
+        PlaySound(areaAttackSound); // Reproducir sonido de ataque de área
         yield return new WaitForSeconds(areaAttackCooldown);
         recentSpecialAttacks.Add("Area");
         nextAttackTime = Time.time + areaAttackCooldown;
@@ -208,6 +227,7 @@ public class BossEnemy : BaseEnemy
     public IEnumerator ExecuteDashAttack()
     {
         Debug.Log("Ejecutando ataque de dash.");
+        PlaySound(dashAttackSound); // Reproducir sonido de ataque de dash
         yield return new WaitForSeconds(dashAttackCooldown);
         recentSpecialAttacks.Add("Dash");
         nextAttackTime = Time.time + dashAttackCooldown;
@@ -216,10 +236,12 @@ public class BossEnemy : BaseEnemy
     public override void ExecuteUltimateAttack(bool isRanged)
     {
         Debug.Log(isRanged ? "Ejecutando ataque ultimate a distancia." : "Ejecutando ataque ultimate melee.");
+        PlaySound(ultimateAttackSound); // Reproducir sonido de ataque ultimate
         nextAttackTime = Time.time + ultimateAttackCooldown;
         recentSpecialAttacks.Clear();
-        ultimateUsed = true; // Evitar uso repetido
+        ultimateUsed = true;
     }
+
 
     public void ExecuteUltimateMeleeAttack()
     {
@@ -260,5 +282,5 @@ public class BossEnemy : BaseEnemy
         Gizmos.color = Color.green;
         Gizmos.DrawWireSphere(transform.position, stoppingDistance);
     }
-    
+
 }

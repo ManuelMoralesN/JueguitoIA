@@ -21,6 +21,12 @@ public class MeleeState : BaseState
     private BossEnemy _owner;
     private bool _substateEntered = false;
     private NavMeshAgent agent;
+
+
+    public AudioClip basicAttackSound;
+    public AudioClip areaAttackSound;
+    public AudioClip dashAttackSound;
+    public AudioClip ultimateAttackSound;
     private AudioSource audioSource; // Referencia al AudioSource del enemigo
 
     public MeleeState()
@@ -30,19 +36,17 @@ public class MeleeState : BaseState
 
     public override void OnEnter()
     {
-    InitializeReferences();
 
-    // Reproducir sonido al entrar en Melee
-    if (_owner != null)
-    {
-        _owner.PlayMeleeSound();
-    }
-    else
-    {
-        Debug.LogError("MeleeState: _owner no está inicializado.");
-    }
-        base.OnEnter();
         InitializeReferences();
+        audioSource = _owner.GetComponent<AudioSource>();
+
+
+        _currentSubstate = MeleeSubstate.SubstateSelection; // Reiniciar subestado
+        _substateEntered = false; // Reiniciar flag de entrada
+        _substateHistory.Clear(); // Limpiar historial de subestados
+
+        base.OnEnter();
+
         agent = _owner.GetComponent<NavMeshAgent>();
         Debug.Log("Entrando al estado MeleeState.");
     }
@@ -58,16 +62,24 @@ public class MeleeState : BaseState
         Debug.Log("MeleeState: Referencias inicializadas.");
         
         if (_owner == null || _owner.Animator == null)
-        Debug.LogError("MeleeState: _owner o su Animator no están asignados correctamente.");
+            Debug.LogError("MeleeState: _owner o su Animator no están asignados correctamente.");
 
         if (_owner == null)
-    {
-        Debug.LogError("MeleeState: _owner no está inicializado.");
+        {
+            Debug.LogError("MeleeState: _owner no está inicializado.");
+        }
+        else
+        {
+            Debug.Log("MeleeState: _owner inicializado correctamente.");
+        }
     }
-    else
+
+    private void PlaySound(AudioClip clip)
     {
-        Debug.Log("MeleeState: _owner inicializado correctamente.");
-    }
+        if (clip != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(clip); // Reproduce el sonido sin interrumpir otros
+        }
     }
 
     public override void OnUpdate()
@@ -90,16 +102,16 @@ public class MeleeState : BaseState
 
     public override void OnExit()
     {
-        // Detener la música si el AudioSource está disponible
-    if (audioSource != null && audioSource.isPlaying)
-    {
-        audioSource.Stop();
-        Debug.Log("Deteniendo sonido al salir del estado Melee.");
-    }
+        _currentSubstate = MeleeSubstate.SubstateSelection; // Reiniciar subestado
+        _substateEntered = false; // Reiniciar flag de entrada
+        _substateHistory.Clear(); // Limpiar historial de subestados
+
         base.OnExit();
-        agent.isStopped = true; // Detener movimiento al salir del estado
-        Debug.Log("Saliendo del estado MeleeState.");
-    }   
+        agent.isStopped = true;
+
+        Debug.Log("Saliendo del estado RangeState. Subestado reiniciado a SubstateSelection.");
+    }
+
 
     private void HandleSubstateLogic()
     {
@@ -128,6 +140,8 @@ public class MeleeState : BaseState
         }
     }
 
+
+
     private void ExecuteSubstateOnce(System.Action action)
     {
         if (_substateEntered) return;
@@ -146,10 +160,15 @@ public class MeleeState : BaseState
 
     private IEnumerator BasicAttack()
     {
-        Debug.Log("Ejecutando ataque básico en estado Melee.");
+        Debug.Log("MeleeState: BasicAttack ejecutado.");
+        PlaySound(basicAttackSound);
+        _owner.ExecuteBasicAttack();
 
-    // Activar la animación del ataque básico
-    _owner.Animator.SetTrigger("BasicAttackTrigger");
+        _owner.Animator.SetTrigger("BasicAttack");
+        yield return new WaitForSeconds(_owner.basicAttackCooldown);
+
+        // Activar la animación del ataque básico
+        _owner.Animator.SetTrigger("BasicAttackTrigger");
 
     // Sincronizar la aplicación de daño con la animación
     yield return new WaitForSeconds(0.19f); // Ajusta este valor al tiempo del impacto en la animación
@@ -180,8 +199,11 @@ public class MeleeState : BaseState
     {
     Debug.Log("MeleeState: Ejecutando ataque de área.");
 
-    // Activar la animación del ataque de área
-    _owner.Animator.SetTrigger("AreaAttackTrigger");
+        PlaySound(areaAttackSound);
+
+
+        // Activar la animación del ataque de área
+        _owner.Animator.SetTrigger("AreaAttackTrigger");
 
     // Sincronizar el daño con la animación
     yield return new WaitForSeconds(1.27f); // Ajusta este valor al momento del impacto en la animación
@@ -212,6 +234,7 @@ public class MeleeState : BaseState
     private IEnumerator DashAttack()
     {
         Debug.Log("MeleeState: Ejecutando ataque de dash.");
+        PlaySound(dashAttackSound);
 
     // Activar la animación del ataque de dash
     _owner.Animator.SetTrigger("DashAttackTrigger");
@@ -256,7 +279,9 @@ public class MeleeState : BaseState
     {
         Debug.Log("Ejecutando ataque ultimate.");
 
-    // Activar la animación del Ultimate Attack
+        // Activar la animación del Ultimate Attack
+
+        PlaySound(ultimateAttackSound);
     _owner.Animator.SetTrigger("UltimateAttackTrigger");
 
     // Esperar hasta que la animación alcance el impacto visual
@@ -295,13 +320,16 @@ public class MeleeState : BaseState
         TransitionToSelectionState();
     }
 
+
+
     private void TransitionToSelectionState()
     {
-        Debug.Log("Transici n al subestado de selecci n.");
+        Debug.Log("Transición al subestado de selección.");
         _substateHistory.Add(_currentSubstate);
         _substateEntered = false;
         _currentSubstate = MeleeSubstate.SubstateSelection;
     }
+
 
     private void SelectNextSubstate()
     {
@@ -327,4 +355,5 @@ public class MeleeState : BaseState
             _currentSubstate = MeleeSubstate.Dash;
         }
     }
+
 }

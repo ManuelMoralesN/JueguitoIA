@@ -50,16 +50,17 @@ public class BaseFSM : MonoBehaviour
 
         if (currentState != null)
         {
-            // Salir del estado actual
+            Debug.Log($"FSM: Saliendo del estado {currentState.Name}");
             currentState.OnExit();
         }
 
-        // Cambiar al nuevo estado
         currentState = newState;
 
-        // Entrar al nuevo estado
+        Debug.Log($"FSM: Entrando al estado {currentState.Name}");
         currentState.OnEnter();
     }
+
+
 
     // M todo virtual para definir el estado inicial (debe ser sobrescrito)
     public virtual BaseState GetInitialState()

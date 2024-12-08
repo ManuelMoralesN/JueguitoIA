@@ -16,10 +16,25 @@ public class PlayerHealth : MonoBehaviour
     public Color damageColor = Color.red; // Color que tomará al recibir daño
     public float flashDuration = 0.2f; // Duración del parpadeo
 
+    [Header("Audio Settings")]
+    public AudioClip damageSound; // Sonido al recibir daño
+    public AudioSource audioSource;       // Referencia al AudioSource
+
     private Color originalColor; // Color original del jugador
 
     void Start()
     {
+
+        if (audioSource == null)
+        {
+            audioSource = GetComponent<AudioSource>();
+        }
+
+        // Verificar si el AudioSource está configurado correctamente
+        if (audioSource == null)
+        {
+            Debug.LogError("BaseEnemy: No se encontró un AudioSource en el enemigo.");
+        }
         animator = GetComponent<Animator>(); // Obtener la referencia al Animator
         uiManager = FindObjectOfType<UIManager>(); // Obtener la referencia al UIManager
 
@@ -38,11 +53,19 @@ public class PlayerHealth : MonoBehaviour
         }
     }
 
+    public void PlaySound(AudioClip clip)
+    {
+        if (clip != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(clip); // Reproduce el sonido sin interrumpir otros
+        }
+    }
     // Método para recibir daño
     public void TakeDamage(int damage)
     {
         if (isDead) return; // No recibir más daño si ya está muerto
 
+        PlaySound(damageSound); // Sonido al recibir daño
         health -= damage;
         Debug.Log("Jugador recibió daño. Salud restante: " + health);
 

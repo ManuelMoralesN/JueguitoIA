@@ -20,7 +20,13 @@ public class RangeState : BaseState
     private BossEnemy _owner;
     private bool _substateEntered = false;
     private UnityEngine.AI.NavMeshAgent agent;
-    
+
+    public AudioClip basicAttackSound;
+    public AudioClip areaAttackSound;
+    public AudioClip dashAttackSound;
+    public AudioClip ultimateAttackSound;
+    private AudioSource audioSource; // Referencia al AudioSource del enemigo
+
 
     public RangeState()
     {
@@ -29,10 +35,18 @@ public class RangeState : BaseState
 
     public override void OnEnter()
     {
-        base.OnEnter();
         InitializeReferences();
+
+        _currentSubstate = RangeSubstate.SubstateSelection; // Reiniciar subestado
+        _substateEntered = false; // Reiniciar flag de entrada
+        _substateHistory.Clear(); // Limpiar historial de subestados
+
+        Debug.Log("Entrando al estado MeleeState. Subestado reiniciado a SubstateSelection.");
+
+        base.OnEnter();
+
         agent = _owner.GetComponent<UnityEngine.AI.NavMeshAgent>();
-        Debug.Log("Entrando al estado RangeState.");
+        Debug.Log("Entrando al estado MeleeState.");
     }
 
     private void InitializeReferences()
@@ -46,6 +60,13 @@ public class RangeState : BaseState
         Debug.Log($"RangeState: Referencias inicializadas. Owner: {_owner}, FSMRef: {_enemyFSMRef}");
     }
 
+    private void PlaySound(AudioClip clip)
+    {
+        if (clip != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(clip); // Reproduce el sonido sin interrumpir otros
+        }
+    }
 
     public override void OnUpdate()
     {
@@ -127,8 +148,11 @@ public class RangeState : BaseState
     {
             Debug.Log("RangedState: Ejecutando ataque básico aéreo.");
 
-    // Activar la animación del ataque
-    _owner.Animator.SetTrigger("RangedAttackTrigger");
+        PlaySound(basicAttackSound);
+
+
+        // Activar la animación del ataque
+        _owner.Animator.SetTrigger("RangedAttackTrigger");
 
     // Sincronizar con la animación (ajusta el tiempo al momento del disparo)
     yield return new WaitForSeconds(0.5f);
@@ -163,6 +187,7 @@ public class RangeState : BaseState
     private IEnumerator AreaAttack()
     {
          Debug.Log("RangedState: Ejecutando ataque aéreo de área con múltiples puntos de disparo.");
+        PlaySound(areaAttackSound);
 
     // Activar la animación del ataque
     _owner.Animator.SetTrigger("AreaAttackTriggerA");
@@ -203,6 +228,7 @@ public class RangeState : BaseState
     private IEnumerator DashAttack()
     {
         Debug.Log("Ejecutando ataque combinado: Dash + Ráfaga de proyectiles con una animación.");
+        PlaySound(dashAttackSound);
 
     // Activar la animación del ataque
     _owner.Animator.SetTrigger("DashProjectileTrigger");
@@ -279,6 +305,7 @@ public class RangeState : BaseState
     private IEnumerator UltimateAttack()
     {
         Debug.Log("RangedState: Ejecutando ataque ultimate de bolas de fuego.");
+        PlaySound(ultimateAttackSound);
 
     // Activar la animación del ataque ultimate
     _owner.Animator.SetTrigger("UltimateAttackTrigger");
@@ -334,6 +361,7 @@ public class RangeState : BaseState
         yield return new WaitForSeconds(cooldownTime);
         TransitionToSelectionState();
     }
+
 
     private void TransitionToSelectionState()
     {

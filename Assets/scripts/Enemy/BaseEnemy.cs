@@ -12,15 +12,15 @@ public class BaseEnemy : MonoBehaviour
     public Renderer enemyRenderer;          // Renderer del enemigo
     public Color damageColor = Color.red;   // Color de parpadeo al recibir daño
     public float flashDuration = 0.1f;      // Duración del parpadeo en segundos
+
     [Header("Audio Settings")]
+    public AudioClip damageSound; // Sonido al recibir daño
     public AudioSource audioSource;       // Referencia al AudioSource
-    public AudioClip meleeSoundClip;      // Sonido al entrar en Melee
 
     private Color originalColor;            // Color original del material
 
     public virtual void Awake()
     {
-        // Si hay inicialización específica que deba ocurrir antes de `Start`, colócala aquí.
     }
 
     void Start()
@@ -49,10 +49,20 @@ public class BaseEnemy : MonoBehaviour
         }
     }
 
+    public void PlaySound(AudioClip clip)
+    {
+        if (clip != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(clip); // Reproduce el sonido sin interrumpir otros
+        }
+    }
+
     // Método para recibir daño
     public virtual void TakeDamage(int damage)
     {
         health -= damage;
+        PlaySound(damageSound); // Sonido al recibir daño
+
         Debug.Log("Enemigo ha recibido " + damage + " puntos de daño. Vida restante: " + health);
 
         if (health <= 0)
@@ -100,17 +110,5 @@ public class BaseEnemy : MonoBehaviour
         yield return new WaitForSeconds(uiManager.delayBeforeVictory + 1.5f);  // Esperar el tiempo de la pantalla de victoria + un segundo y medio extra
         Destroy(gameObject);
     }
-     public void PlayMeleeSound()
-    {
-        if (audioSource != null && meleeSoundClip != null)
-        {
-            audioSource.clip = meleeSoundClip;
-            audioSource.Play();
-            Debug.Log("Sonido de Melee reproducido.");
-        }
-        else
-        {
-            Debug.LogError("BaseEnemy: El AudioSource o el AudioClip no están configurados.");
-        }
-    }
+     
 }
