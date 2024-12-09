@@ -268,7 +268,7 @@ NavMeshObstacle:
   m_Extents: {x: 0.16000001, y: 0.16000001, z: 0.16000001}
   m_MoveThreshold: 0.1
   m_Carve: 1
-  m_CarveOnlyStationary: 1
+  m_CarveOnlyStationary: 0
   m_Center: {x: 0, y: 0, z: 0}
   m_TimeToStationary: 0.5
 --- !u!114 &27192330
@@ -1474,7 +1474,7 @@ NavMeshObstacle:
   m_Extents: {x: 0.16000001, y: 0.16000001, z: 0.16000001}
   m_MoveThreshold: 0.1
   m_Carve: 1
-  m_CarveOnlyStationary: 1
+  m_CarveOnlyStationary: 0
   m_Center: {x: 0, y: 0, z: 0}
   m_TimeToStationary: 0.5
 --- !u!114 &270930298
@@ -1519,7 +1519,7 @@ NavMeshObstacle:
   m_Extents: {x: 0.16000001, y: 0.16000001, z: 0.16000001}
   m_MoveThreshold: 0.1
   m_Carve: 1
-  m_CarveOnlyStationary: 1
+  m_CarveOnlyStationary: 0
   m_Center: {x: 0, y: 0, z: 0}
   m_TimeToStationary: 0.5
 --- !u!114 &272941781
@@ -2035,7 +2035,7 @@ NavMeshObstacle:
   m_Extents: {x: 0.16000001, y: 0.16000001, z: 0.16000001}
   m_MoveThreshold: 0.1
   m_Carve: 1
-  m_CarveOnlyStationary: 1
+  m_CarveOnlyStationary: 0
   m_Center: {x: 0, y: 0, z: 0}
   m_TimeToStationary: 0.5
 --- !u!114 &357953213
@@ -2269,7 +2269,7 @@ MonoBehaviour:
   m_Center: {x: 0, y: 2, z: 0}
   m_LayerMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 2176
   m_UseGeometry: 0
   m_DefaultArea: 0
   m_GenerateLinks: 0
@@ -7399,15 +7399,17 @@ MonoBehaviour:
   dashAttackCooldown: 2
   ultimateAttackCooldown: 10
   basicAttackSound: {fileID: 8300000, guid: 7a528b5572607d0419e6541bb2e476b4, type: 3}
-  areaAttackSound: {fileID: 0}
-  dashAttackSound: {fileID: 0}
-  ultimateAttackSound: {fileID: 0}
+  areaAttackSound: {fileID: 8300000, guid: 7a528b5572607d0419e6541bb2e476b4, type: 3}
+  dashAttackSound: {fileID: 8300000, guid: 7a528b5572607d0419e6541bb2e476b4, type: 3}
+  ultimateAttackSound: {fileID: 8300000, guid: 7a528b5572607d0419e6541bb2e476b4, type: 3}
   movementSpeed: 3.5
   stoppingDistance: 2
-  basicAttackDamage: 0
-  areaAttackDamage: 0
+  basicAttackDamage: 10
+  areaAttackDamage: 10
   areaAttackRange: 5
-  dashAttackDamage: 0
+  dashAttackDamage: 10
+  dashDistance: 5
+  dashSpeed: 10
   ultimateAttackDamage: 50
   ultimateRange: 10
   projectilePrefab: {fileID: 1397018945846210080, guid: fd071d07770da0d468e793c3db564ffc, type: 3}
@@ -7420,6 +7422,8 @@ MonoBehaviour:
   projectilePrefab2: {fileID: 1397018945846210080, guid: fd071d07770da0d468e793c3db564ffc, type: 3}
   projectileSpawnPoint2: {fileID: 110380133}
   timeBetweenProjectiles: 1
+  rangedDashDistance: 10
+  rangedDashSpeed: 15
   projectilePrefab3: {fileID: 1397018945846210080, guid: fd071d07770da0d468e793c3db564ffc, type: 3}
   projectileSpawnPoint3: {fileID: 110380133}
 --- !u!195 &1200065646
@@ -11899,7 +11903,7 @@ NavMeshObstacle:
   m_Extents: {x: 0.16000001, y: 0.16000001, z: 0.16000001}
   m_MoveThreshold: 0.1
   m_Carve: 1
-  m_CarveOnlyStationary: 1
+  m_CarveOnlyStationary: 0
   m_Center: {x: 0, y: 0, z: 0}
   m_TimeToStationary: 0.5
 --- !u!4 &1912226485 stripped

@@ -153,14 +153,14 @@ public class RangeState : BaseState
         // Activar la animación del ataque
         _owner.Animator.SetTrigger("RangedAttackTrigger");
 
-    // Sincronizar con la animación (ajusta el tiempo al momento del disparo)
-    yield return new WaitForSeconds(0.5f);
+        // Sincronizar con la animación (ajusta el tiempo al momento del disparo)
+        yield return new WaitForSeconds(0.5f);
 
-    // Calcular la dirección hacia el jugador
-    Vector3 directionToPlayer = (_owner.Player.position - _owner.projectileSpawnPoint.position).normalized;
+        // Calcular la dirección hacia el jugador
+        Vector3 directionToPlayer = (_owner.Player.position - _owner.projectileSpawnPoint.position).normalized;
 
-    // Generar el proyectil
-    GameObject projectile = GameObject.Instantiate(
+        // Generar el proyectil
+        GameObject projectile = GameObject.Instantiate(
         _owner.projectilePrefab,
         _owner.projectileSpawnPoint.position,  // Posición del origen del proyectil
         Quaternion.identity  // Rotación inicial
@@ -168,6 +168,7 @@ public class RangeState : BaseState
 
     // Configurar el proyectil
     EnemyProjectile projScript = projectile.GetComponent<EnemyProjectile>();
+
     if (projScript != null)
     {
         projScript.Initialize(directionToPlayer); // Pasar dirección al proyectil
@@ -229,73 +230,71 @@ public class RangeState : BaseState
         Debug.Log("Ejecutando ataque combinado: Dash + Ráfaga de proyectiles con una animación.");
         PlaySound(dashAttackSound);
 
-    // Activar la animación del ataque
-    _owner.Animator.SetTrigger("DashProjectileTrigger");
+        // Activar la animación del ataque
+        _owner.Animator.SetTrigger("DashProjectileTrigger");
 
-    // Dirección del dash
-    Vector3 directionToPlayer = (_owner.Player.position - _owner.transform.position).normalized;
+        float dashDistance = _owner.rangedDashDistance; // Desde BossEnemy
+        float dashSpeed = _owner.rangedDashSpeed;       // Desde BossEnemy
 
-    // Distancia y velocidad del dash
-    float dashDistance = 10f;
-    float dashSpeed = 20f;
+        // Dirección del dash
+        Vector3 directionToPlayer = (_owner.Player.position - _owner.transform.position).normalized;
 
-    // Punto final del dash
-    Vector3 dashTarget = _owner.transform.position + directionToPlayer * dashDistance;
+        // Punto final del dash
+        Vector3 dashTarget = _owner.transform.position + directionToPlayer * dashDistance;
 
-    // Evitar atravesar obstáculos
-    if (Physics.Raycast(_owner.transform.position, directionToPlayer, out RaycastHit hit, dashDistance))
-    {
-        dashTarget = hit.point;
-    }
-
-    // Movimiento del dash
-    float elapsedTime = 0f;
-    float dashDuration = dashDistance / dashSpeed;
-    Vector3 startPosition = _owner.transform.position;
-
-    while (elapsedTime < dashDuration)
-    {
-        elapsedTime += Time.deltaTime;
-        _owner.transform.position = Vector3.Lerp(startPosition, dashTarget, elapsedTime / dashDuration);
-
-        yield return null;
-    }
-
-    // Pausa breve después del Dash para sincronizar con los disparos
-    yield return new WaitForSeconds(0.20f);
-
-    // Disparar la ráfaga de proyectiles
-    int projectilesToShoot = 3;
-    float timeBetweenShots = 0.2f;
-
-    for (int i = 0; i < projectilesToShoot; i++)
-    {
-        // Calcular dirección hacia el jugador
-        Vector3 directionToFire = (_owner.Player.position - _owner.projectileSpawnPoint.position).normalized;
-
-        // Instanciar el proyectil
-        GameObject projectile = GameObject.Instantiate(
-            _owner.projectilePrefab,
-            _owner.projectileSpawnPoint.position,
-            Quaternion.identity
-        );
-
-        // Configurar el proyectil
-        EnemyProjectile projScript = projectile.GetComponent<EnemyProjectile>();
-        if (projScript != null)
+        // Evitar atravesar obstáculos
+        if (Physics.Raycast(_owner.transform.position, directionToPlayer, out RaycastHit hit, dashDistance))
         {
-            projScript.Initialize(directionToFire); // Configurar dirección del proyectil
-            projScript.playerLayer = LayerMask.GetMask("Player"); // Asignar capa del jugador
-        }
-        else
-        {
-            Debug.LogError("El prefab del proyectil no tiene el componente EnemyProjectile.");
+            dashTarget = hit.point;
         }
 
-        // Esperar antes de disparar el siguiente proyectil
-        yield return new WaitForSeconds(timeBetweenShots);
-    }
+        // Movimiento del dash
+        float elapsedTime = 0f;
+        float dashDuration = dashDistance / dashSpeed;
+        Vector3 startPosition = _owner.transform.position;
 
+        while (elapsedTime < dashDuration)
+        {
+            elapsedTime += Time.deltaTime;
+            _owner.transform.position = Vector3.Lerp(startPosition, dashTarget, elapsedTime / dashDuration);
+
+            yield return null;
+        }
+
+        // Pausa breve después del Dash para sincronizar con los disparos
+        yield return new WaitForSeconds(0.20f);
+
+        // Disparar la ráfaga de proyectiles
+        int projectilesToShoot = 3;
+        float timeBetweenShots = 0.2f;
+
+        for (int i = 0; i < projectilesToShoot; i++)
+        {
+            // Calcular dirección hacia el jugador
+            Vector3 directionToFire = (_owner.Player.position - _owner.projectileSpawnPoint.position).normalized;
+
+            // Instanciar el proyectil
+            GameObject projectile = GameObject.Instantiate(
+                _owner.projectilePrefab,
+                _owner.projectileSpawnPoint.position,
+                Quaternion.identity
+            );
+
+            // Configurar el proyectil
+            EnemyProjectile projScript = projectile.GetComponent<EnemyProjectile>();
+            if (projScript != null)
+            {
+                projScript.Initialize(directionToFire); // Configurar dirección del proyectil
+                projScript.playerLayer = LayerMask.GetMask("Player"); // Asignar capa del jugador
+            }
+            else
+            {
+                Debug.LogError("El prefab del proyectil no tiene el componente EnemyProjectile.");
+            }
+
+            // Esperar antes de disparar el siguiente proyectil
+            yield return new WaitForSeconds(timeBetweenShots);
+        }
 
         _owner.ExecuteDashAttack();
         yield break;

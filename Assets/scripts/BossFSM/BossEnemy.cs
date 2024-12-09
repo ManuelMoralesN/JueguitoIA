@@ -36,11 +36,13 @@ public class BossEnemy : BaseEnemy
 
     [Header("Ataque de Dash")]
     public float dashAttackDamage = 15f;  // Daño infligido por el dash
+    public float dashDistance = 5f; // Distancia que recorrerá el dash
+    public float dashSpeed = 10f;   // Velocidad del movimiento
 
     [Header("Ultimate Attack")]
     public float ultimateAttackDamage = 50f;   // Daño infligido por el ultimate
     public float ultimateRange = 10f;
-
+    
     [Header("Ataque a Distancia")]
     public GameObject projectilePrefab;   // Prefab del proyectil
     public Transform projectileSpawnPoint; // Punto de origen para los proyectiles
@@ -53,6 +55,8 @@ public class BossEnemy : BaseEnemy
     public GameObject projectilePrefab2;          // Prefab del proyectil
     public Transform projectileSpawnPoint2;       // Punto de disparo de los proyectiles
     public float timeBetweenProjectiles = 0.2f;  // Tiempo entre cada proyectil en la ráfaga
+    public float rangedDashDistance = 10f; // Distancia del dash en estado rango
+    public float rangedDashSpeed = 15f;   // Velocidad del dash en estado rango
 
     [Header("Ataque Ultimate Aereo")]
     public GameObject projectilePrefab3;          // Prefab del proyectil
@@ -160,52 +164,72 @@ public class BossEnemy : BaseEnemy
         }
     }
 
-    public void ExecuteNextAttack()
+    public void DoSphereDamage(Vector3 spherePosition, float sphereRadius, float attackDamage, LayerMask damageLayer)
     {
-        if (Time.time < nextAttackTime) return;
+        // Detectar colisiones en el rango del ataque
+        Collider[] playerColliders = Physics.OverlapSphere(spherePosition, sphereRadius, damageLayer);
 
-        if (!ultimateUsed && CanExecuteUltimateMeleeAttack())
+        foreach (Collider playerCollider in playerColliders)
         {
-            ExecuteUltimateMeleeAttack();
-        }
-        else if (!ultimateUsed && CanExecuteUltimateRangedAttack())
-        {
-            ExecuteUltimateRangedAttack();
-        }
-        else
-        {
-            ExecuteAttack(DetermineNextAttack());
+            PlayerHealth playerHealth = playerCollider.GetComponent<PlayerHealth>();
+            if (playerHealth != null)
+            {
+                Debug.Log($"Jugador impactado por ataque. Daño: {attackDamage}");
+                playerHealth.TakeDamage((int)attackDamage); // Aplicar daño
+            }
+            else
+            {
+                Debug.LogWarning("El Collider detectado no tiene el componente PlayerHealth.");
+            }
         }
     }
 
-    private string DetermineNextAttack()
-    {
-        if (recentSpecialAttacks.Count == 0 || recentSpecialAttacks[^1] == "Dash")
-        {
-            return "Basic";
-        }
-        else if (recentSpecialAttacks[^1] == "Basic")
-        {
-            return "Area";
-        }
-        return "Dash";
-    }
+    //public void ExecuteNextAttack()
+    //{
+    //    if (Time.time < nextAttackTime) return;
 
-    public void ExecuteAttack(string attackType)
-    {
-        switch (attackType)
-        {
-            case "Basic":
-                StartCoroutine(ExecuteBasicAttack());
-                break;
-            case "Area":
-                StartCoroutine(ExecuteAreaAttack());
-                break;
-            case "Dash":
-                StartCoroutine(ExecuteDashAttack());
-                break;
-        }
-    }
+    //    if (!ultimateUsed && CanExecuteUltimateMeleeAttack())
+    //    {
+    //        ExecuteUltimateMeleeAttack();
+    //    }
+    //    else if (!ultimateUsed && CanExecuteUltimateRangedAttack())
+    //    {
+    //        ExecuteUltimateRangedAttack();
+    //    }
+    //    else
+    //    {
+    //        ExecuteAttack(DetermineNextAttack());
+    //    }
+    //}
+
+    //private string DetermineNextAttack()
+    //{
+    //    if (recentSpecialAttacks.Count == 0 || recentSpecialAttacks[^1] == "Dash")
+    //    {
+    //        return "Basic";
+    //    }
+    //    else if (recentSpecialAttacks[^1] == "Basic")
+    //    {
+    //        return "Area";
+    //    }
+    //    return "Dash";
+    //}
+
+    //public void ExecuteAttack(string attackType)
+    //{
+    //    switch (attackType)
+    //    {
+    //        case "Basic":
+    //            StartCoroutine(ExecuteBasicAttack());
+    //            break;
+    //        case "Area":
+    //            StartCoroutine(ExecuteAreaAttack());
+    //            break;
+    //        case "Dash":
+    //            StartCoroutine(ExecuteDashAttack());
+    //            break;
+    //    }
+    //}
 
     public IEnumerator ExecuteBasicAttack()
     {
@@ -233,14 +257,14 @@ public class BossEnemy : BaseEnemy
         nextAttackTime = Time.time + dashAttackCooldown;
     }
 
-    public override void ExecuteUltimateAttack(bool isRanged)
-    {
-        Debug.Log(isRanged ? "Ejecutando ataque ultimate a distancia." : "Ejecutando ataque ultimate melee.");
-        PlaySound(ultimateAttackSound); // Reproducir sonido de ataque ultimate
-        nextAttackTime = Time.time + ultimateAttackCooldown;
-        recentSpecialAttacks.Clear();
-        ultimateUsed = true;
-    }
+    //public override void ExecuteUltimateAttack(bool isRanged)
+    //{
+    //    Debug.Log(isRanged ? "Ejecutando ataque ultimate a distancia." : "Ejecutando ataque ultimate melee.");
+    //    PlaySound(ultimateAttackSound); // Reproducir sonido de ataque ultimate
+    //    nextAttackTime = Time.time + ultimateAttackCooldown;
+    //    recentSpecialAttacks.Clear();
+    //    ultimateUsed = true;
+    //}
 
 
     public void ExecuteUltimateMeleeAttack()
