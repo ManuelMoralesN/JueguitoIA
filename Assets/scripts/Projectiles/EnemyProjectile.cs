@@ -5,6 +5,7 @@ public class EnemyProjectile : MonoBehaviour
     public int damage = 10;            // Daño que inflige el proyectil
     public float speed = 20;         // Velocidad del proyectil
     public LayerMask playerLayer;     // Layer para el jugador
+    public LayerMask obstacleLayer;   // Layer para los obstáculos
     public GameObject explosionEffect; // Prefab de la explosión
 
     private Vector3 direction;        // Dirección del proyectil
@@ -38,9 +39,22 @@ public class EnemyProjectile : MonoBehaviour
             {
                 Instantiate(explosionEffect, collision.transform.position, Quaternion.identity);
             }
+            // Independientemente del objeto con el que colisione, desactivar el proyectil
+            Destroy(gameObject);
         }
 
-        // Independientemente del objeto con el que colisione, desactivar el proyectil
-        Destroy(gameObject);
+
+        // Verificar si el objeto colisionado está en la capa de obstáculos
+        else if (((1 << collision.gameObject.layer) & obstacleLayer) != 0)
+        {
+            // Instanciar el efecto de explosión al impactar contra un obstáculo
+            if (explosionEffect != null)
+            {
+                Instantiate(explosionEffect, collision.transform.position, Quaternion.identity);
+            }
+
+            Destroy(gameObject); // Destruir el proyectil
+        }
+
     }
 }

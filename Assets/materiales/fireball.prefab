@@ -64,6 +64,14 @@ PrefabInstance:
       propertyPath: m_AngularDrag
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5859499373810135706, guid: 8be0301fe400f6d4380b643c70a2f3d8, type: 3}
+      propertyPath: m_IsKinematic
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5859499373810135706, guid: 8be0301fe400f6d4380b643c70a2f3d8, type: 3}
+      propertyPath: m_IncludeLayers.m_Bits
+      value: 2056
+      objectReference: {fileID: 0}
     - target: {fileID: 8283084763068808252, guid: 8be0301fe400f6d4380b643c70a2f3d8, type: 3}
       propertyPath: m_Name
       value: fireball
@@ -167,4 +175,7 @@ MonoBehaviour:
   playerLayer:
     serializedVersion: 2
     m_Bits: 8
+  obstacleLayer:
+    serializedVersion: 2
+    m_Bits: 2048
   explosionEffect: {fileID: 7313943164604810928, guid: 796b9ed14dbb4a2409f5e0d208490c80, type: 3}
