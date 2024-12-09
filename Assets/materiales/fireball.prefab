@@ -132,6 +132,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8858266934998782978, guid: 8be0301fe400f6d4380b643c70a2f3d8, type: 3}
+      propertyPath: m_IsTrigger
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 753256966230005190, guid: 8be0301fe400f6d4380b643c70a2f3d8, type: 3}
     m_RemovedGameObjects: []
@@ -159,6 +163,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   damage: 10
+  speed: 20
   playerLayer:
     serializedVersion: 2
     m_Bits: 8
