@@ -17,6 +17,11 @@ public class BaseEnemy : MonoBehaviour
     public AudioClip damageSound; // Sonido al recibir daño
     public AudioSource audioSource;       // Referencia al AudioSource
 
+    [Header("Animación")]
+    public Animator animator;       // Referencia al Animator del enemigo
+    public string deathAnimation = "Death"; // Nombre de la animación de muerte
+
+
     private Color originalColor;            // Color original del material
 
     public virtual void Awake()
@@ -24,7 +29,22 @@ public class BaseEnemy : MonoBehaviour
     }
 
     void Start()
-    {
+        {
+        // Buscar automáticamente el Animator si no está asignado
+        if (animator == null)
+        {
+            animator = GetComponent<Animator>();
+        }
+
+        if (animator == null)
+        {
+            Debug.LogError("BaseEnemy: No se encontró un Animator en el enemigo.");
+        }
+            else
+        {
+            Debug.Log("BaseEnemy: Animator asignado automáticamente.");
+        }
+
         // Asignar automáticamente el AudioSource si no está configurado
         if (audioSource == null)
         {
@@ -92,13 +112,77 @@ public class BaseEnemy : MonoBehaviour
     }
 
     public virtual void Die()
-    {
-        Debug.Log("El enemigo ha muerto.");
-        uiManager.ShowVictory();  // Mostrar pantalla de victoria antes de destruir el enemigo
+{
+    Debug.Log("El enemigo ha muerto.");
 
-        // Agregar un retraso antes de destruir el objeto enemigo para asegurar que la pantalla de victoria se vea
-        StartCoroutine(DestroyAfterVictory());
+    // Detener interacciones
+    DisableEnemyBehaviors();
+
+    // Reproducir la animación de muerte
+    if (animator != null)
+    {
+        animator.SetTrigger("Death");
+        StartCoroutine(HandleDeathAnimation());
     }
+    else
+    {
+        Debug.LogWarning("BaseEnemy: No se encontró Animator. Desactivando el enemigo inmediatamente.");
+        gameObject.SetActive(false);
+    }
+}
+
+// Método para desactivar comportamientos clave
+private void DisableEnemyBehaviors()
+{
+    // Desactivar FSM
+    var fsm = GetComponent<EnemyFSM>();
+    if (fsm != null)
+    {
+        fsm.enabled = false;
+    }
+
+    // Desactivar NavMeshAgent para detener movimiento
+    var navMeshAgent = GetComponent<UnityEngine.AI.NavMeshAgent>();
+    if (navMeshAgent != null)
+    {
+        navMeshAgent.isStopped = true;
+        navMeshAgent.enabled = false;
+    }
+
+    // Desactivar scripts de ataques
+    foreach (var script in GetComponents<MonoBehaviour>())
+    {
+        if (script != this) // No desactivar BaseEnemy
+        {
+            script.enabled = false;
+        }
+    }
+
+    // Desactivar colisiones para evitar interacciones
+    var collider = GetComponent<Collider>();
+    if (collider != null)
+    {
+        collider.enabled = false;
+    }
+}
+
+    // Manejar la animación de muerte y la pantalla de victoria
+private IEnumerator HandleDeathAnimation()
+{
+    // Obtener la duración de la animación de muerte
+    AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+    float deathAnimationDuration = stateInfo.length;
+
+    // Esperar la duración de la animación
+    yield return new WaitForSeconds(deathAnimationDuration);
+
+    // Mostrar pantalla de victoria después de la animación
+    uiManager.ShowVictory();
+
+    // Destruir el enemigo tras la pantalla de victoria
+    Destroy(gameObject, 3f);
+    
+}
 
     public virtual void ExecuteUltimateAttack(bool isRanged)
     {

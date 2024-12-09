@@ -149,7 +149,7 @@ public class RangeState : BaseState
 
         PlaySound(basicAttackSound);
 
-
+        
         // Activar la animación del ataque
         _owner.Animator.SetTrigger("RangedAttackTrigger");
 

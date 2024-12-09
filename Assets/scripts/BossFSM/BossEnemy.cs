@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI; 
 
 public class BossEnemy : BaseEnemy
 {
@@ -64,14 +65,12 @@ public class BossEnemy : BaseEnemy
 
     private float nextAttackTime;
     private List<string> recentSpecialAttacks = new List<string>();
-
     private EnemyFSM fsm;
     private Transform player;
     private bool isGameStarted = false;
     private bool ultimateUsed = false;
     public Transform Player => player;
     private UnityEngine.AI.NavMeshAgent navMeshAgent; // Referencia al NavMeshAgent
-    private Animator animator;
     public Animator Animator => animator; // Propiedad para acceder al Animator
     public UnityEngine.AI.NavMeshAgent NavMeshAgent => navMeshAgent; // Propiedad para acceso desde estados
 
@@ -123,6 +122,12 @@ public class BossEnemy : BaseEnemy
 
     private void FollowPlayer()
     {
+        if (agent == null || !agent.isOnNavMesh)
+    {
+        Debug.LogWarning("El NavMeshAgent no está activo o no está en un NavMesh válido.");
+        return;
+    }
+        if (health <= 0) return; // No seguir al jugador si está muerto
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
         // Girar hacia el jugador
