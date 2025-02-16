@@ -10,24 +10,27 @@ public class Projectile : MonoBehaviour
 
     void OnCollisionEnter(Collision collision)
     {
-        // Verificar si el objeto colisionado está en la capa destructible o es un enemigo
+        // Verificar si el objeto colisionado está en la capa destructible
         if (((1 << collision.gameObject.layer) & destructibleLayer) != 0)
         {
-            // Verificar si el objeto colisionado es un enemigo
+            // Verificar si el objeto colisionado es un enemigo antes de destruir
             BaseEnemy enemy = collision.gameObject.GetComponent<BaseEnemy>();
             if (enemy != null)
             {
-                // Infligir daño al enemigo
+                // Infligir daño al enemigo en lugar de destruirlo
                 enemy.TakeDamage(damage);
             }
             else
             {
-                // Si no es un enemigo, crear una explosión
+                // Si no es un enemigo, destruir el objeto
                 Instantiate(Explosion, collision.transform.position, Quaternion.identity);
+                Destroy(collision.gameObject);
             }
         }
-
-        // Desactiva el proyectil en cualquier caso
-        gameObject.SetActive(false);
+        else
+        {
+            // Si colisiona con cualquier otra cosa, desactiva la bola de fuego
+            gameObject.SetActive(false);
+        }
     }
 }

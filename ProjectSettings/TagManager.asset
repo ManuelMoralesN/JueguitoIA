@@ -15,7 +15,7 @@ TagManager:
   - Projectile
   - Floor
   - Structures
-  - Destructible
+  - destructibleLayer
   - Enemies
   - Obstacle
   - 
